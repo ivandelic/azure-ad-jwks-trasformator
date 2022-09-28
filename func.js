@@ -4,9 +4,11 @@ const https = require('https');
 fdk.handle(async function (input, ctx) {
   return httpsRequest({url: ctx.config["AZURE_JWKS_URI"]}).then(data => {
     data.keys.forEach(element => {
-      element["alg"] = "RS256"
+      if (!!ctx.config["AZURE_JWKS_APPEND_ALG"])
+        element["alg"] = ctx.config["AZURE_JWKS_APPEND_ALG"]
+      if (!!ctx.config["AZURE_JWKS_SKIP_X5C"])
+        delete element["x5c"]
     });
-    data.keys = data.keys.slice(ctx.config["AZURE_JWKS_SLICE_START"], ctx.config["AZURE_JWKS_SLICE_END"])
     console.log("Modified JWKS:" + JSON.stringify(data));
     return data;
   }, error => {
