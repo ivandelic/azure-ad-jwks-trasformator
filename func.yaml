@@ -5,3 +5,7 @@ runtime: node
 build_image: fnproject/node:14-dev
 run_image: fnproject/node:14
 entrypoint: node func.js
+config:
+    AZURE_JWKS_URI: https://login.microsoftonline.com/common/discovery/keys
+    AZURE_JWKS_APPEND_ALG: RS256
+    AZURE_JWKS_SKIP_X5C: true
