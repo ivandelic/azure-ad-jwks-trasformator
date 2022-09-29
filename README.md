@@ -1,15 +1,21 @@
 # How to Use Azure AD to Secure OCI API Gateway With OAuth and JWT?
 
-Azure AD is one of the major identity and access management services. It's cloud based and can serve as OAuth 2.0 IdP, making the SSO across multi-cloud easy and fluid. OCI API Gateway is a rock-solid API management solution for securing and controlling APIs. OCI API Gateway can use Azure AD OAuth capabilties to secure and authorize API endpoints. How to setup OAuth SSO beetween Azure AD and OCI API Gateway based on JWT? How to adapt JWKS key formats? How to configure OCI API Gateway to use Azure AD JWT? Continue reading and find it out.
+Azure AD is a popular identity and access management (IAM) service in Azure. It's cloud-based and can serve as OAuth 2.0 IdP, making the SSO across multi-cloud easy and fluid. OCI API Gateway is a rock-solid API management solution for securing and controlling APIs in OCI. API Gateway can use Azure AD OAuth capabilities to secure and authorize API endpoints. How to set up OAuth SSO between Azure AD and API Gateway in OCI based on JWT? What if JWKS keys are not compatible between Azure AD and API Gateway? How to configure API Gateway in OCI to use Azure AD-issued JWT? Continue reading and find it out.
 
 Prerequisites:
-1. You have client application that needs to connect to OCI API Gateway.
-2. You have Azure AD tenancy.
-3. You are familiar with OCI API Gateway and OCI Functions
-4. You have set up VCN for OCI API Gateway and Functions
+- You have access to OCI and Azure tenancies.
+- You have a client application that needs to connect to API Gateway in OCI. I will be using Visual Builder for a demonstration. Still, you can use any of yours since the application registers in Azure AD and implements simple [OAuth client credential flows](https://learn.microsoft.com/en-us/azure/active-directory/develop/v2-oauth2-client-creds-grant-flow) for JWT issuance.
+- You have basic knowledge about [API Gateway](https://docs.oracle.com/en-us/iaas/Content/APIGateway/Concepts/apigatewayoverview.htm) and [Functions](https://docs.oracle.com/en-us/iaas/Content/Functions/Concepts/functionsoverview.htm) in OCI.
+- You have created Virtual Cloud Network (VCN) for API Gateaway and Functions in OCI
 
 ## Introduction
-![](images/architecture.png)
+In the multi-cloud era, it's preferred to use distributed components across different hyper-scale clouds. This example will ensure that Azure AD OAuth IdP protects API deployments in OCI using the JWT tokens and OAuth client credential flow. The flow is typically easy to use since it requires exporting (1) JWKS keys from Azure AD IdP and importing them into OCI API Gateway. The client application then invokes Azure AD IdP to (2) issue JWT using client credentials and grabs the JWT from the response. Finally, the client application supplies JWT with the (3) request against protected API Gateway resources in OCI. Three mentioned steps are depicted in the architectural sequence below.
+
+![](images/architecture-01.png)
+
+Due to certain limitations in JWKS keys related to the absence ```alg``` field from the keys, we need to develop the JWKS Adapter component in OCI. JWKS adapter modifies JWKS on the fly by adding the required ```alg``` field, setting it up to ```RS256```. 
+
+![](images/architecture-02.png)
 
 Architecture comprises four main components:  
 a) Active Directory OAuth IdP [Azure]  
