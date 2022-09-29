@@ -13,22 +13,23 @@ In the multi-cloud era, it's preferred to use distributed components across diff
 
 ![](images/architecture-01.png)
 
-Due to certain limitations in JWKS keys related to the absence ```alg``` field from the keys, we need to develop the JWKS Adapter component in OCI. JWKS adapter modifies JWKS on the fly by adding the required ```alg``` field, setting it up to ```RS256```. 
+Due to certain limitations in JWKS, related to the absence of ```alg``` field from the keys, we need to develop JWKS Adapter component in OCI, acting as proxy for the sequence (1) above. JWKS Adapter modifies JWKS on the fly by adding the required ```alg``` field, setting it up to ```RS256```. In addition, JWKS Adapter reduces the total size of JWKS by removing ```x5c``` field from the key. JWKS Adapter is built using Functions and API Gateway is OCI.
 
 ![](images/architecture-02.png)
 
-Architecture comprises four main components:  
-a) Active Directory OAuth IdP [Azure]  
-b) JWKS Adapter [OCI]  
-c) Secured API [OCI]  
-d) Client Application
+Target architecture is comprised of four main components:  
+- (A) Active Directory OAuth IdP [Azure]  
+- (B) JWKS Adapter [OCI]  
+- (C) Secured API [OCI]  
+- (D) Client Application
 
 This guide will demonstrate:
-1. Configure (a) Azure Active Directory OAuth IdP
-2. Build and Deploy (b) JWKS Adapter Using OCI Function
-3. Deploy (c) Secured API With API Gateway and JWT
+1. Configure (A) Azure Active Directory OAuth IdP
+2. Build and Deploy (B) JWKS Adapter Using OCI Function
+3. Deploy (C) Secured API With API Gateway and JWT
 
-## Configure (a) Azure Active Directory OAuth IdP
+## Configure (A) Azure Active Directory OAuth IdP
+The goal of this step is to register Client Application, make a note of client credentials and get familiar with all required endpoints with the OAuth client credential flow.
 
 1. Open Azure Active Directory the Azure Console. Register a new Application by selecting ```App registrations``` from the left menu and pressing ```New registration``` button.
 ![](images/azure-01.png)
