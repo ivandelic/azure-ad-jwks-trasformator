@@ -7,6 +7,7 @@ Prerequisites:
 - You have a client application that needs to connect to API Gateway in OCI. I will be using Visual Builder for a demonstration. Still, you can use any of yours since the application registers in Azure AD and implements simple [OAuth client credential flows](https://learn.microsoft.com/en-us/azure/active-directory/develop/v2-oauth2-client-creds-grant-flow) for JWT issuance.
 - You have basic knowledge about [API Gateway](https://docs.oracle.com/en-us/iaas/Content/APIGateway/Concepts/apigatewayoverview.htm) and [Functions](https://docs.oracle.com/en-us/iaas/Content/Functions/Concepts/functionsoverview.htm) in OCI.
 - You have created Virtual Cloud Network (VCN) for API Gateway and Functions in OCI
+- Create a Policy to Give API Gateways Access to Functions following [docs](https://docs.oracle.com/en-us/iaas/Content/APIGateway/Tasks/apigatewaycreatingpolicies.htm#dynamicgrouppolicy).
 
 ## Introduction
 In the multi-cloud era, it's preferred to use distributed components across different hyper-scale clouds. This example will ensure that Azure AD OAuth IdP protects API deployments in OCI using the JWT tokens and OAuth client credential flow. The flow is typically easy to use since it requires exporting (1) JWKS keys from Azure AD IdP and importing them into OCI API Gateway. The client application then invokes Azure AD IdP to (2) issue JWT using client credentials and grabs the JWT from the response. Finally, the client application supplies JWT with the (3) request against protected API Gateway resources in OCI. Three mentioned steps are depicted in the architectural sequence below.
@@ -57,7 +58,7 @@ The goal is to build JWKS Adapter as a proxy between (A) Active Directory OAuth 
 ![](images/adaptor-03.png)
 2. Make sure you have the proper VCN configured, ready to host the JWKS adapter Function. Enter a name (e.g. ```jwks-adapter```) and press ```Create```.
 ![](images/adaptor-04.png)
-3. When the Application is created, select ```Getting started``` from the left menu and follow ```Setup fn CLI on Cloud Shell``` guide. Follow the steps form 1 to 7. You will need to launch Cloud Shell by pressing the button or selecting the icon in the upper right part of the page.
+3. When the Application is created, select ```Getting started``` from the left menu and follow ```Setup fn CLI on Cloud Shell``` guide. Follow the steps form 1 to 7. You will need to launch Cloud Shell by pressing the button or selecting the icon in the upper right part of the page. Make sure to replace ```[repo-name-prefix]``` with your custome name, e.g. ```jwks-adapter```.
 ![](images/adaptor-05.png)
 4. Keep the Cloud Shell open and clone adapter function from the GitHub
     ```console
@@ -82,17 +83,18 @@ The goal is to build JWKS Adapter as a proxy between (A) Active Directory OAuth 
     ```
 8. Find your API Gateway from the OCI menu, select ```Deployments```, and press ```Create deployment```. This will expose our adapter Function to be invokable.
 ![](images/adaptor-07.png)
-8. Fill the ```Name``` and ```Path``` and press ```Next```.
+9. Fill the ```Name``` and ```Path``` and press ```Next```.
 ![](images/adaptor-08.png)
-9.  Leave the deployment with ```No Authentication```, since it will only serve to proxy and modify Azure JWKS and adapt it to API Gateway expected format. Press ```Next``` to proceed.
+10.  Leave the deployment with ```No Authentication```, since it will only serve to proxy and modify Azure JWKS and adapt it to API Gateway expected format. Press ```Next``` to proceed.
 ![](images/adaptor-09.png)
-10. Create a Route, define a ```Path``` and ```Methods```. Choose ```Single backend``` with ```Oracle functions``` type. Select Application and Function deployed in the previous steps.
+11. Create a Route, define a ```Path``` and ```Methods```. Choose ```Single backend``` with ```Oracle functions``` type. Select Application and Function deployed in the previous steps.
 ![](images/adaptor-10.png)
-11. Review the deployment and press ```Create```.
+12. Review the deployment and press ```Create```.
 ![](images/adaptor-11.png)
-12. Wait untill Deployment is in ```Active``` state and copy the ```Endpoint```.
+13. Wait untill Deployment is in ```Active``` state and copy the ```Endpoint```.
 ![](images/adaptor-12.png)
-13. Use Postman or similar tool to test the endpoint. Paste copied endpoint and suffix it with ```Route``` path from step 10. It should retrive Azure JWKS with modified values.
+14.  Make sure you have created a policy from the prerequisite steps. You need to have policy with statement ```ALLOW any-user to use functions-family in compartment <functions-compartment-name> where ALL {request.principal.type= 'ApiGateway', request.resource.compartment.id = '<api-gateway-compartment-OCID>'}```. Replace ```<functions-compartment-name>```with your function compartment name and ```<api-gateway-compartment-OCID>``` with API Gateway compartment OCID.
+15.  Use Postman or similar tool to test the endpoint. Paste copied endpoint and suffix it with ```Route``` path from step 10. It should retrive Azure JWKS with modified values.
 ![](images/adaptor-13.png)
 
 ## 3. Deploy (C) Secured API With API Gateway and JWT
