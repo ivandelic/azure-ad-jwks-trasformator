@@ -30,7 +30,7 @@ Ensure to follow next steps:
 2. Build and Deploy (B) JWKS Adapter Using OCI Function
 3. Deploy (C) Secured API With API Gateway and JWT
 
-## Configure (A) Azure Active Directory OAuth IdP
+## 1. Configure (A) Azure Active Directory OAuth IdP
 The goal of this step is to register Client Application and configure Azure Active Directory.
 
 1. Open Azure Active Directory the Azure Console. Register a new Application by selecting ```App registrations``` from the left menu and pressing ```New registration``` button.
@@ -50,7 +50,7 @@ The goal of this step is to register Client Application and configure Azure Acti
 8. Return to the ```Overview``` from the left menu, press ```Endpoints``` button and copy the ```OAuth 2.0 token endpoint (v1)``` URL, which will be used for the issuance of JWT tokens.
 ![](images/azure-07.png)
 
-## Build and Deploy (B) JWKS Adapter Using OCI Function
+## 2. Build and Deploy (B) JWKS Adapter Using OCI Function
 The goal is to build JWKS Adapter as a proxy between (A) Active Directory OAuth IdP and (C) Secured API. The reason behind is the absence of ```alg``` field from the keys. JWKS Adapter modifies JWKS on the fly by adding the required ```alg``` field, setting it up to ```RS256```. Function code is located [here](/jwks-adapter/func.js).
 
 1. Create Application for JWKS adapter Function by pressing ```Create application``` button.
@@ -63,11 +63,15 @@ The goal is to build JWKS Adapter as a proxy between (A) Active Directory OAuth 
     ```console
     git clone https://github.com/ivandelic/how-to-use-azure-ad-to-secure-oci-api-gateway-with-oauth-and-jwt.git
     ```
-5. Enter the cloned repository and deploy adapter Function to Application created in step 1. Make sure the ```--app``` parameter is equal to Application name. 
+5. Go in the function folder
+    ```
+    cd how-to-use-azure-ad-to-secure-oci-api-gateway-with-oauth-and-jwt/jwks-adapter
+    ```
+6. Enter the cloned repository and deploy adapter Function to Application created in step 1. Make sure the ```--app``` parameter is equal to Application name. 
     ```
     fn -v deploy --app jwks-adapter
     ```
-6. Test the freshly deployed function by invoking
+7. Test the freshly deployed function by invoking
     ```
     fn invoke jwks-adapter azure-jwks-transformator
     ```
@@ -76,7 +80,7 @@ The goal is to build JWKS Adapter as a proxy between (A) Active Directory OAuth 
     ivan_delic@cloudshell:~ (eu-frankfurt-1)$ fn invoke jwks-adapter azure-jwks-transformator
     {"keys":[{"kty":"RSA","use":"sig","kid":"nOo3ZDrODXEK1jKWhXslHR_KXEg","x5t":"nOo3ZDrODXEK1jKWhXslHR_KXEg","n":"oaLLT9hkcSj2tGfZsjbu7Xz1Krs0qEicXPmEsJKOBQHauZ_kRM1HdEkgOJbUznUspE6xOuOSXjlzErqBxXAu4SCvcvVOCYG2v9G3-uIrLF5dstD0sYHBo1VomtKxzF90Vslrkn6rNQgUGIWgvuQTxm1uRklYFPEcTIRw0LnYknzJ06GC9ljKR617wABVrZNkBuDgQKj37qcyxoaxIGdxEcmVFZXJyrxDgdXh9owRmZn6LIJlGjZ9m59emfuwnBnsIQG7DirJwe9SXrLXnexRQWqyzCdkYaOqkpKrsjuxUj2-MHX31FqsdpJJsOAvYXGOYBKJRjhGrGdONVrZdUdTBQ","e":"AQAB","alg":"RS256"},...]}
     ```
-7. Find your API Gateway from the OCI menu, select ```Deployments```, and press ```Create deployment```. This will expose our adapter Function to be invokable.
+8. Find your API Gateway from the OCI menu, select ```Deployments```, and press ```Create deployment```. This will expose our adapter Function to be invokable.
 ![](images/adaptor-07.png)
 8. Fill the ```Name``` and ```Path``` and press ```Next```.
 ![](images/adaptor-08.png)
@@ -91,7 +95,7 @@ The goal is to build JWKS Adapter as a proxy between (A) Active Directory OAuth 
 13. Use Postman or similar tool to test the endpoint. Paste copied endpoint and suffix it with ```Route``` path from step 10. It should retrive Azure JWKS with modified values.
 ![](images/adaptor-13.png)
 
-## Deploy (c) Secured API With API Gateway and JWT
+## 3. Deploy (C) Secured API With API Gateway and JWT
 Goal of the step is to deploy API, secured by JWT.
 
 1. Find your API Gateway from the OCI menu, select ```Deployments```, and press ```Create deployment```. We will create API secured by JWT.
