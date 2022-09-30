@@ -6,7 +6,7 @@ Prerequisites:
 - You have access to OCI and Azure tenancies.
 - You have a client application that needs to connect to API Gateway in OCI. I will be using Visual Builder for a demonstration. Still, you can use any of yours since the application registers in Azure AD and implements simple [OAuth client credential flows](https://learn.microsoft.com/en-us/azure/active-directory/develop/v2-oauth2-client-creds-grant-flow) for JWT issuance.
 - You have basic knowledge about [API Gateway](https://docs.oracle.com/en-us/iaas/Content/APIGateway/Concepts/apigatewayoverview.htm) and [Functions](https://docs.oracle.com/en-us/iaas/Content/Functions/Concepts/functionsoverview.htm) in OCI.
-- You have created Virtual Cloud Network (VCN) for API Gateaway and Functions in OCI
+- You have created Virtual Cloud Network (VCN) for API Gateway and Functions in OCI
 
 ## Introduction
 In the multi-cloud era, it's preferred to use distributed components across different hyper-scale clouds. This example will ensure that Azure AD OAuth IdP protects API deployments in OCI using the JWT tokens and OAuth client credential flow. The flow is typically easy to use since it requires exporting (1) JWKS keys from Azure AD IdP and importing them into OCI API Gateway. The client application then invokes Azure AD IdP to (2) issue JWT using client credentials and grabs the JWT from the response. Finally, the client application supplies JWT with the (3) request against protected API Gateway resources in OCI. Three mentioned steps are depicted in the architectural sequence below.
@@ -23,13 +23,15 @@ Target architecture is comprised of four main components:
 - (C) Secured API [OCI]  
 - (D) Client Application
 
-This guide will demonstrate:
+JWKS Adapter (B) plays the role of a reverse proxy between (C) Secured API and (A) Active Directory OAuth IdP. The sequence starts with API Gateway (3) retrieving adapted JWKS from another API deployment, serving as a facade for Function. API deployment (2) invokes Functions, which (1) invokes Azure JWKS and modifies it on the fly. When the message is returned to the original requestor (C) JWKS Adapter, it's a set of modified JWKS from Azure, ready to be used in API Gateway.
+
+Ensure to follow next steps:
 1. Configure (A) Azure Active Directory OAuth IdP
 2. Build and Deploy (B) JWKS Adapter Using OCI Function
 3. Deploy (C) Secured API With API Gateway and JWT
 
 ## Configure (A) Azure Active Directory OAuth IdP
-The goal of this step is to register Client Application, make a note of client credentials and get familiar with all required endpoints with the OAuth client credential flow.
+The goal of this step is to register Client Application and configure Azure Active Directory.
 
 1. Open Azure Active Directory the Azure Console. Register a new Application by selecting ```App registrations``` from the left menu and pressing ```New registration``` button.
 ![](images/azure-01.png)
@@ -37,16 +39,19 @@ The goal of this step is to register Client Application, make a note of client c
 ![](images/azure-02.png)
 3. Take a note of ```Application (client) ID```, since we will use it as a credential in token generation API.
 ![](images/azure-03.png)
-1. Select ```Certificates & secrets``` from the left menu and press ```New client secret``` button.
+4. Select ```Certificates & secrets``` from the left menu and press ```New client secret``` button.
 ![](images/azure-04.png)
 5. Fill a short secret description and pick expiry option. By default, expiration of the secret is set to 6 months. The secret will go in pair with ```Application (client) ID``` from step 3. Finally, press ```Add``` button.
 ![](images/azure-05.png)
 6. Take a note of secret by copying ```Value``` field.
 ![](images/azure-06.png)
-7. Return to the ```Overview``` from the left menu, press ```Endpoints``` button and copy the ```OAuth 2.0 token endpoint (v1)``` URL, which will be used for the issuance of JWT tokens.
+7. Select ```Token configuration``` from the left menu and press ```Add optional claim``` button. Then choose ```Access``` token type and select ```aud``` claim. Press ```Add``` button to complete action.
+![](images/azure-08.png)
+8. Return to the ```Overview``` from the left menu, press ```Endpoints``` button and copy the ```OAuth 2.0 token endpoint (v1)``` URL, which will be used for the issuance of JWT tokens.
 ![](images/azure-07.png)
 
-## Build and Deploy (b) JWKS Adapter Using OCI Function
+## Build and Deploy (B) JWKS Adapter Using OCI Function
+The goal is to build JWKS Adapter as a proxy between (A) Active Directory OAuth IdP and (C) Secured API. The reason behind is the absence of ```alg``` field from the keys. JWKS Adapter modifies JWKS on the fly by adding the required ```alg``` field, setting it up to ```RS256```. Function code is located [here](/jwks-adapter/func.js).
 
 1. Create Application for JWKS adapter Function by pressing ```Create application``` button.
 ![](images/adaptor-03.png)
@@ -87,26 +92,26 @@ The goal of this step is to register Client Application, make a note of client c
 ![](images/adaptor-13.png)
 
 ## Deploy (c) Secured API With API Gateway and JWT
-Goal is to deploy API secured by JWT issed by Azure AD.
+Goal of the step is to deploy API, secured by JWT.
 
 1. Find your API Gateway from the OCI menu, select ```Deployments```, and press ```Create deployment```. We will create API secured by JWT.
-   ![](images/adaptor-07.png)
+![](images/adaptor-07.png)
 2. Fill the ```Name``` and ```Path``` and press ```Next```.
-   ![](images/gateway-01.png)
+![](images/gateway-01.png)
 3. We will protect the API with JSON Web Token (JWT). Under Authentication step, select ```Single Authentication```. Select JWT token location to ```Header``` and define header name to ```Authorization```. Use Authentication scheme ```Bearer```. Press ```Next``` to proceed.
-   ![](images/gateway-02.png)
+![](images/gateway-02.png)
 4. Define ```Allowed issuer``` and ```Allowed audience```. Since we used v1 token API, ```Allowed issuer``` should be set to ```https://sts.windows.net/{tenant-id}/```. Replace {tenant-id} with your Azure tenant ID. ```Allowed audience``` should contain aud claim value, and by default, unless explicitly set, it is ```00000002-0000-0000-c000-000000000000```.
-   ![](images/gateway-03.png)
-5. For Public keys make sure to select Remote JWKS and enter JWKS URI to match deployment of adapter Function
-   ![](images/gateway-04.png)
+![](images/gateway-03.png)
+5. For Public keys make sure to select ```Remote JWKS``` and enter ```JWKS URI``` to match deployment of ```JWKS Adapter``` Function
+![](images/gateway-04.png)
 6. Create a Route, define a ```Path``` and ```Methods```. Choose ```Single backend``` with ```Stock response``` type. Define simple Body and Status code. Press Next to proceed.
-   ![](images/gateway-05.png)
+![](images/gateway-05.png)
 7. Review the deployment and press ```Create```.
-   ![](images/gateway-06.png)
+![](images/gateway-06.png)
 8. Wait untill Deployment is in ```Active``` state and copy the ```Endpoint```.
-   ![](images/gateway-07.png)
-9.  Use Postman to retrive JWT token from Azure AD. Enter token API URL https://login.microsoftonline.com/{tenant-id}/oauth2/token, while replacing {tenant-id} with your Azure tenant ID. Send a request and copy the JWT token
-   ![](images/gateway-08.png)
-10. Use Postman to test secured API endpoint. Paste copied endpoint and suffix it with ```Route``` path from step 6. Add Authorization header, use Bearer scheme and paste JWT token issued in the previous step. It should retrive demo body from the step 6.
-    ![](images/gateway-09.png)
+![](images/gateway-07.png)
+9. Use Postman to retrive JWT token from Azure AD. Enter token API URL https://login.microsoftonline.com/{tenant-id}/oauth2/token, while replacing {tenant-id} with your Azure tenant ID. Send a request and copy ```access_token``` value.
+![](images/gateway-08.png)
+10. Finally, use Postman to test secured API endpoint. Paste copied endpoint and suffix it with ```Route``` path from step 6. Add Authorization header, use Bearer scheme and paste JWT token issued in the previous step. It should retrive demo body from the step 6.
+![](images/gateway-09.png)
 
