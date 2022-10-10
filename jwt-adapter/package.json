@@ -1,0 +1,11 @@
+{
+	"name": "jwt-adapter",
+    "version": "1.0.0",
+	"description": "JWT adapter for Azure AD",
+	"main": "func.js",
+	"author": "",
+	"license": "Apache-2.0",
+	"dependencies": {
+		"@fnproject/fdk": ">=0.0.41"
+	}
+}

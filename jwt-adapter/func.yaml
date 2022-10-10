@@ -1,0 +1,11 @@
+schema_version: 20180708
+name: jwt-adapter
+version: 0.0.5
+runtime: node
+build_image: fnproject/node:14-dev
+run_image: fnproject/node:14
+entrypoint: node func.js
+config:
+  AZURE_JWT_CLIENT_ID: 842c85cf-9f45-4932-b8bb-c8acb5efe9fd
+  AZURE_JWT_CLIENT_SECRET: ChangeMe!
+  AZURE_JWT_URI: https://login.microsoftonline.com/05fb74b2-7b55-459a-a42c-17b201edef81/oauth2/token
