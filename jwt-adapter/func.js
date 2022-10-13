@@ -5,7 +5,7 @@ const https = require('https');
 fdk.handle(async function (input, ctx) {
   return httpsRequest({ url: ctx.config["AZURE_JWT_URI"], client_id: ctx.config["AZURE_JWT_CLIENT_ID"], client_secret: ctx.config["AZURE_JWT_CLIENT_SECRET"] }).then(data => {
     console.log("JWT:" + JSON.stringify(data));
-    return data;
+    return JSON.parse(data);
   }, error => {
     return error;
   });
